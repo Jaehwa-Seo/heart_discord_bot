@@ -1,6 +1,24 @@
-import token
+from token_data import token
 import discord
-import gspred
+import time
+from datetime import datetime
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+scope = [
+'https://spreadsheets.google.com/feeds',
+'https://www.googleapis.com/auth/drive',
+]
+json_file_name = './google_sheet.json'
+credentials = ServiceAccountCredentials.from_json_keyfile_name(json_file_name, scope)
+gc = gspread.authorize(credentials)
+spreadsheet_url = 'https://docs.google.com/spreadsheets/d/1HChfMTew04Quy0LuWRckUW9ovmto5uZQ0NAyKmGQKx0/edit#gid=0'
+doc = gc.open_by_url(spreadsheet_url)
+worksheet = doc.worksheet('Discord_user_data')
+user_data = worksheet.get_all_values()
+
+print(user_data)
+
+
 from discord.ext import commands
 
 intents = discord.Intents.all()
@@ -35,14 +53,20 @@ async def 자기소개끝(message):
 
 @bot.command()
 async def print_members(message):
-    print("프린트")
-    # channel = bot.get_channel(1166986626568835102)
+    print("print_members")
     member_info = bot.get_guild(1036292207491154041).members
 
-    for info in member_info:
-        print(info.nick)
-    
-    # await channel.send(new_msg) 
+    # for info in member_info:
+    #     index = 0
+    #     for name in user_data:
+    #         if name[1] == info.nick:
+    #             break
+    #         index += 1
+
+    #     worksheet.update_cell(index+1, 1, str(info.id))
+    #     worksheet.insert_row([info.id, info.nick, info.name, 0], 1)
+    #     time.sleep(1)
+
 
 # @bot.command()
 # async def give_test(message):
@@ -90,15 +114,46 @@ async def on_reaction_add(reaction, user):
             channel = bot.get_channel(1125625298063462411)
             await channel.send(msg) 
 
+connect_data = []
+
 @bot.event
 async def on_voice_state_update(member, before, after):
-    channel = bot.get_channel(1166986626568835102)
-    await channel.send(member) 
-    await channel.send(before) 
-    await channel.send(after) 
-    print(member)
-    print(before)
-    print(after)
+    # channel = bot.get_channel(1166986626568835102)
+    # await channel.send(member) 
+    # await channel.send(before) 
+    # await channel.send(after) 
+    # print(member.id)
+    # print(before.channel)
+    # print(after)
+
+    
+
+    if before.channel == None and after.channel != None:
+        user_info = {"id" : member.id, "start_time" : datetime.now()}
+        connect_data.append(user_info)
+    elif before.channel != None and after.channel == None:
+        index = 0
+        find_info = False
+
+        for info in connect_data:
+            if info["id"] == member.id:
+                find_info = True
+                break;
+            index += 1
+
+        if find_info:
+            sheet_index = 0
+            total_time = 0
+            for user_id in user_data:
+                if str(user_id[0]) == str(member.id):
+                    total_time = user_id[3]
+                    break
+                sheet_index += 1
+            now = datetime.now()
+            connect_time = (now - connect_data[index]["start_time"]).seconds/60
+
+            worksheet.update_cell(sheet_index+1, 4, float(total_time)+connect_time)
+            del connect_data[index]
 
             
 
