@@ -16,9 +16,6 @@ doc = gc.open_by_url(spreadsheet_url)
 worksheet = doc.worksheet('Discord_user_data')
 user_data = worksheet.get_all_values()
 
-print(user_data)
-
-
 from discord.ext import commands
 
 intents = discord.Intents.all()
@@ -35,22 +32,18 @@ async def on_ready():
     print("라미 봇 ON")
 
 @bot.command()
-async def 자기소개끝(message):
-    print("자기소개끝")
-    print(discord.Team.members)
-    channel = bot.get_channel(1166986626568835102)
-    
-    # embed = discord.Embed(title= message.author.name + "님의 입국 심사", color=discord.Color.green())
-    # # channel = bot.get_channel(1041268462183534595)
-    # channel = bot.get_channel(1125625298063462411)
-    # global immigration_message, immigration_user, immigration_count
-    # immigration_message = await channel.send(embed=embed)
-    # immigration_user = message.author
-    # immigration_count = 0
-
-    # print(immigration_count)
-    # await immigration_message.add_reaction("⭕")
-
+async def check_daily_connect(message):
+    channel = bot.get_channel(1036293472774279369)
+    # print(channel.history(limit=1000))
+    messages = [message async for message in channel.history(limit=123)]
+    print(messages)
+    # await channel.send(member) 
+    # await channel.send(before) 
+    # await channel.send(after) 
+    # print(member.id)
+    # print(before.channel)
+    # print(after)
+ 
 @bot.command()
 async def print_members(message):
     print("print_members")
@@ -118,16 +111,6 @@ connect_data = []
 
 @bot.event
 async def on_voice_state_update(member, before, after):
-    # channel = bot.get_channel(1166986626568835102)
-    # await channel.send(member) 
-    # await channel.send(before) 
-    # await channel.send(after) 
-    # print(member.id)
-    # print(before.channel)
-    # print(after)
-
-    
-
     if before.channel == None and after.channel != None:
         user_info = {"id" : member.id, "start_time" : datetime.now()}
         connect_data.append(user_info)
@@ -151,9 +134,13 @@ async def on_voice_state_update(member, before, after):
                 sheet_index += 1
             now = datetime.now()
             connect_time = (now - connect_data[index]["start_time"]).seconds/60
+            total_time = float(total_time)+connect_time
+
+            user_data[sheet_index][3] = total_time
 
             worksheet.update_cell(sheet_index+1, 4, float(total_time)+connect_time)
             del connect_data[index]
+
 
             
 
