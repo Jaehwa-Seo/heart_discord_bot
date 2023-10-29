@@ -16,6 +16,8 @@ doc = gc.open_by_url(spreadsheet_url)
 worksheet = doc.worksheet('Discord_user_data')
 user_data = worksheet.get_all_values()
 
+print(user_data)
+
 from discord.ext import commands
 
 intents = discord.Intents.all()
@@ -34,15 +36,37 @@ async def on_ready():
 @bot.command()
 async def check_daily_connect(message):
     channel = bot.get_channel(1036293472774279369)
-    # print(channel.history(limit=1000))
-    messages = [message async for message in channel.history(limit=123)]
-    print(messages)
-    # await channel.send(member) 
-    # await channel.send(before) 
-    # await channel.send(after) 
-    # print(member.id)
-    # print(before.channel)
-    # print(after)
+    messages = [message async for message in channel.history(limit=1000)]
+    
+    
+    tmp = []
+
+    for info in messages:
+        index = 0
+        flag = False
+        for id in user_data:
+            if id[0] == str(info.author.id):
+                flag = True
+                break
+            index += 1
+        if flag:        
+            user_data[index][5] = str(int(user_data[index][5]) + 1)
+            if index not in tmp:
+                print(str(info.author.name))
+                tmp.append(index)
+        else:
+            print(str(info.author.name))
+        
+        # worksheet.update_cell(index+1, 6, user_data[index][5])
+    
+    print("write finish")
+    print(tmp)
+
+    for i in tmp:
+        worksheet.update_cell(i+1, 6, user_data[i][5])
+        time.sleep(1)
+
+    print("finish")
  
 @bot.command()
 async def print_members(message):
