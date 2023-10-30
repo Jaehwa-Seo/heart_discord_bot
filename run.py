@@ -85,18 +85,7 @@ async def print_members(message):
     #     time.sleep(1)
 
 
-# @bot.command()
-# async def give_test(message):
-#     print("give_test")
-#     global immigration_user
-#     # await message.author.add_roles(bot.get_guild(1041268462183534592).get_role(1126092766527619104)) 
-#     # msg = immigration_user.name+"님 환영합니다. 🐻"
-#     # channel = bot.get_channel(1041268462183534595)
-#     # await channel.send(msg) 
-#     await message.author.add_roles(bot.get_guild(1036292207491154041).get_role(1041002722029215846)) 
-#     msg = immigration_user.name+"님 환영합니다. 🐻"
-#     channel = bot.get_channel(1125625298063462411)
-#     await channel.send(msg) 
+
 
 @bot.event
 async def on_message(message):
