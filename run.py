@@ -90,35 +90,36 @@ async def print_members(message):
 @bot.event
 async def on_message(message):
     print("on_message")
-    
+    await bot.process_commands(message)
+
     # message_content = message.content
     # introduce = message_content.find("자기소개끝")
 
     # if introduce >= 0:
     #     await message.delete()
     
-    await bot.process_commands(message)
+    
 
-@bot.event
-async def on_reaction_add(reaction, user):
+# @bot.event
+# async def on_reaction_add(reaction, user):
    
-    if user.bot == 1:
-        return None
-    if str(reaction.emoji) == "⭕":
-        global immigration_user
+#     if user.bot == 1:
+#         return None
+#     if str(reaction.emoji) == "⭕":
+#         global immigration_user
 
-        if user.name == immigration_user.name:
-            return None
+#         if user.name == immigration_user.name:
+#             return None
         
-        global immigration_count
-        immigration_count += 1
-        print(immigration_count)
-        if immigration_count == 10:
-            await immigration_user.add_roles(bot.get_guild(1036292207491154041).get_role(1041002722029215846)) 
-            await immigration_message.delete()
-            msg = immigration_user.name+"님 환영합니다. 🐻"
-            channel = bot.get_channel(1125625298063462411)
-            await channel.send(msg) 
+#         global immigration_count
+#         immigration_count += 1
+#         print(immigration_count)
+#         if immigration_count == 10:
+#             await immigration_user.add_roles(bot.get_guild(1036292207491154041).get_role(1041002722029215846)) 
+#             await immigration_message.delete()
+#             msg = immigration_user.name+"님 환영합니다. 🐻"
+#             channel = bot.get_channel(1125625298063462411)
+#             await channel.send(msg) 
 
 connect_data = []
 
@@ -139,37 +140,44 @@ async def on_voice_state_update(member, before, after):
 
         if find_info:
             sheet_index = 0
-            total_time = 0
+            month_connect_time = 0
+            total_connect_time = 0
             for user_id in user_data:
                 if str(user_id[0]) == str(member.id):
-                    total_time = user_id[3]
+                    month_connect_time = user_id[3]
+                    total_connect_time = user_id[6]
                     break
                 sheet_index += 1
+
             now = datetime.now()
             connect_time = (now - connect_data[index]["start_time"]).seconds/60
-            total_time = float(total_time)+connect_time
 
-            user_data[sheet_index][3] = total_time
+            month_connect_time = float(month_connect_time)+connect_time
+            total_connect_time = float(total_connect_time)+connect_time
 
-            worksheet.update_cell(sheet_index+1, 4, float(total_time)+connect_time)
+            user_data[sheet_index][3] = month_connect_time
+            user_data[sheet_index][6] = total_connect_time
+
+            worksheet.update_cell(sheet_index+1, 4, float(month_connect_time)+connect_time)
+            worksheet.update_cell(sheet_index+1, 7, float(total_connect_time)+connect_time)
             del connect_data[index]
 
 
             
 
-@bot.event
-async def on_reaction_remove(reaction, user):
-    print("on_reaction_remove")
-    if user.bot == 1:
-        return None
-    if str(reaction.emoji) == "⭕":
-        global immigration_user
+# @bot.event
+# async def on_reaction_remove(reaction, user):
+#     print("on_reaction_remove")
+#     if user.bot == 1:
+#         return None
+#     if str(reaction.emoji) == "⭕":
+#         global immigration_user
 
-        if user.name == immigration_user.name:
-            return None
+#         if user.name == immigration_user.name:
+#             return None
 
-        global immigration_count
-        immigration_count -= 1
+#         global immigration_count
+#         immigration_count -= 1
         
 @bot.event
 async def on_member_join(member):
