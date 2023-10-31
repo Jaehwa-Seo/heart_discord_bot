@@ -16,8 +16,6 @@ doc = gc.open_by_url(spreadsheet_url)
 worksheet = doc.worksheet('Discord_user_data')
 user_data = worksheet.get_all_values()
 
-print(user_data)
-
 from discord.ext import commands
 
 intents = discord.Intents.all()
@@ -38,7 +36,6 @@ async def check_daily_connect(message):
     channel = bot.get_channel(1036293472774279369)
     messages = [message async for message in channel.history(limit=1000)]
     
-    
     tmp = []
 
     for info in messages:
@@ -57,8 +54,6 @@ async def check_daily_connect(message):
         else:
             print(str(info.author.name))
         
-        # worksheet.update_cell(index+1, 6, user_data[index][5])
-    
     print("write finish")
     print(tmp)
 
@@ -84,12 +79,17 @@ async def print_members(message):
     #     worksheet.insert_row([info.id, info.nick, info.name, 0], 1)
     #     time.sleep(1)
 
-
+# @bot.command()
+# async def test(message):
 
 
 @bot.event
 async def on_message(message):
     print("on_message")
+
+    if str(message.channel.id) == "1036293472774279369":
+        Daily_check_connect(message)
+
     await bot.process_commands(message)
 
     # message_content = message.content
@@ -97,29 +97,6 @@ async def on_message(message):
 
     # if introduce >= 0:
     #     await message.delete()
-    
-    
-
-# @bot.event
-# async def on_reaction_add(reaction, user):
-   
-#     if user.bot == 1:
-#         return None
-#     if str(reaction.emoji) == "⭕":
-#         global immigration_user
-
-#         if user.name == immigration_user.name:
-#             return None
-        
-#         global immigration_count
-#         immigration_count += 1
-#         print(immigration_count)
-#         if immigration_count == 10:
-#             await immigration_user.add_roles(bot.get_guild(1036292207491154041).get_role(1041002722029215846)) 
-#             await immigration_message.delete()
-#             msg = immigration_user.name+"님 환영합니다. 🐻"
-#             channel = bot.get_channel(1125625298063462411)
-#             await channel.send(msg) 
 
 connect_data = []
 
@@ -162,7 +139,57 @@ async def on_voice_state_update(member, before, after):
             worksheet.update_cell(sheet_index+1, 7, float(total_connect_time)+connect_time)
             del connect_data[index]
 
+@bot.event
+async def on_member_join(member):
+    print("member_join")
+    msg = member.name+"님, 동그라미 나라에 오신 것을 환영합니다. 💕\n\n간단하게 자기소개 부탁드립니다. 😎\n입국하기 위해서는 10명의 동의가 필요하니 천천히 심사를 기다려 주세요. 🥰"
+    channel = bot.get_channel(1125625298063462411)
+    await channel.send(msg)
 
+async def Monthly_discord_connect_time():
+    role_foreign = bot.get_guild(1036292207491154041).get_role(1041280525094109205)
+    role_people = bot.get_guild(1036292207491154041).get_role(1041002722029215846)
+    index = 0
+    for user_id in user_data:
+        if user_id[0] != "id-code":
+            if float(user_id[3]) > 600:
+                user_id[3] = 0
+                if user_id[4] == "외국인":
+                    user_id[4] = "국민"
+                    member_data = bot.get_guild(1036292207491154041).get_member(int(user_id[0]))
+                    await member_data.add_roles(role_people)
+                    await member_data.remove_roles(role_foreign) 
+
+                    worksheet.update_cell(index+1, 5, "국민")
+            else:
+                user_id[3] = 0
+                if user_id[4] == "국민":
+                    user_id[4] = "외국인"
+                    member_data = bot.get_guild(1036292207491154041).get_member(int(user_id[0]))
+                    await member_data.add_roles(role_people)
+                    await member_data.remove_roles(role_foreign) 
+
+                    worksheet.update_cell(index+1, 5, "외국인")
+        index += 1
+
+def Daily_check_connect(message):
+    user_id = message.author.id
+    index = 0
+    for user_info in user_data:
+        if user_info[0] == str(user_id):
+            today_date = datetime.today().strftime("%Y%m%d")
+            if str(today_date) != user_info[7]:
+                total_daily_check_count = user_info[5] 
+                user_data[index][5] = str(int(user_data[index][5]) + 1)
+                user_data[index][7] = str(today_date)
+                worksheet.update_cell(index+1, 6, int(total_daily_check_count) + 1)
+                worksheet.update_cell(index+1, 8, str(today_date))
+        index += 1
+
+
+     
+
+bot.run(token)
             
 
 # @bot.event
@@ -178,13 +205,25 @@ async def on_voice_state_update(member, before, after):
 
 #         global immigration_count
 #         immigration_count -= 1
-        
-@bot.event
-async def on_member_join(member):
-    print("member_join")
-    msg = member.name+"님, 동그라미 나라에 오신 것을 환영합니다. 💕\n\n간단하게 자기소개 부탁드립니다. 😎\n입국하기 위해서는 10명의 동의가 필요하니 천천히 심사를 기다려 주세요. 🥰"
-    channel = bot.get_channel(1125625298063462411)
-    await channel.send(msg)
-     
 
-bot.run(token)
+# @bot.event
+# async def on_reaction_add(reaction, user):
+   
+#     if user.bot == 1:
+#         return None
+#     if str(reaction.emoji) == "⭕":
+#         global immigration_user
+
+#         if user.name == immigration_user.name:
+#             return None
+        
+#         global immigration_count
+#         immigration_count += 1
+#         print(immigration_count)
+#         if immigration_count == 10:
+#             await immigration_user.add_roles(bot.get_guild(1036292207491154041).get_role(1041002722029215846)) 
+#             await immigration_message.delete()
+#             msg = immigration_user.name+"님 환영합니다. 🐻"
+#             channel = bot.get_channel(1125625298063462411)
+#             await channel.send(msg) 
+        
