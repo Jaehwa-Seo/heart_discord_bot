@@ -1,6 +1,7 @@
 from token_data import token
 import discord
 import time
+import youtube_dl
 from datetime import datetime
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -82,6 +83,76 @@ async def print_members(message):
 # @bot.command()
 # async def test(message):
 
+play_list = []
+
+@bot.command()
+async def calculate_score(message):
+    index = 0
+    for data in user_data:
+        if index != 0:
+            total_score = int(float(data[6])) + (int(data[5]) * 30) 
+            worksheet.update_cell(index+1, 9, total_score)
+            time.sleep(1)
+        index += 1
+
+@bot.command()
+async def play_music(message, *vars):
+    print(vars)
+    if len(bot.voice_clients) == 0:
+        channel = message.author.voice.channel
+        await channel.connect()
+
+    voice = bot.voice_clients[0]
+
+    if len(vars) == 0:
+        # if len(play_list) <= play_number:
+        # elif voice.is_playing():
+        if voice.is_paused():
+            await voice.resume()
+        else:
+            await play_music_in_list(voice)
+    elif len(vars) == 1 and vars[0][0:23] == "https://www.youtube.com":
+        play_list.append(vars[0])
+        
+        if voice.is_playing() == False:
+            await play_music_in_list(voice)
+
+ydl_opts = {
+    'quiet': False,
+    'default_search': 'ytsearch',
+    'format': 'bestaudio/best',
+    'postprocessors': [{
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': 'mp3',
+        'preferredquality': '192',
+    }],
+    'youtube_include_dash_manifest': False,
+}
+FFMPEG_OPTIONS = {
+    'executable': 'C:/Program Files (x86)/ffmpeg/bin/ffmpeg.exe',
+    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+    'options': '-vn'
+}
+
+async def play_music_in_list(voice):
+    global playNumber
+    global messageChannel
+    
+    try:
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(play_list[0], download = False)
+            url = info['formats'][0]['url']
+        playNumber = playNumber + 1
+        voice.play(discord.FFmpegPCMAudio(url, **FFMPEG_OPTIONS),after = my_after)
+    except Exception as e:
+        print(e)
+
+    
+@bot.command()
+async def stop_music(message):
+    await bot.voice_clients[0].disconnect()
+
+
 
 @bot.event
 async def on_message(message):
@@ -89,8 +160,8 @@ async def on_message(message):
 
     if str(message.channel.id) == "1036293472774279369":
         Daily_check_connect(message)
-
-    await bot.process_commands(message)
+    else:
+        await bot.process_commands(message)
 
     # message_content = message.content
     # introduce = message_content.find("자기소개끝")
@@ -102,6 +173,9 @@ connect_data = []
 
 @bot.event
 async def on_voice_state_update(member, before, after):
+    print(member)
+    print(before)
+    print(after)
     if before.channel == None and after.channel != None:
         user_info = {"id" : member.id, "start_time" : datetime.now()}
         connect_data.append(user_info)
@@ -131,20 +205,31 @@ async def on_voice_state_update(member, before, after):
 
             month_connect_time = float(month_connect_time)+connect_time
             total_connect_time = float(total_connect_time)+connect_time
-
+            print(float(month_connect_time)+connect_time)
+            print(user_data[sheet_index][1])
+            print(month_connect_time)
+            print(total_connect_time)
             user_data[sheet_index][3] = month_connect_time
             user_data[sheet_index][6] = total_connect_time
 
-            worksheet.update_cell(sheet_index+1, 4, float(month_connect_time)+connect_time)
-            worksheet.update_cell(sheet_index+1, 7, float(total_connect_time)+connect_time)
+            print(user_data[sheet_index])
+            print(float(month_connect_time)+connect_time)
+
+            worksheet.update_cell(sheet_index+1, 4, month_connect_time)
+            worksheet.update_cell(sheet_index+1, 7, total_connect_time)
             del connect_data[index]
 
 @bot.event
 async def on_member_join(member):
     print("member_join")
-    msg = member.name+"님, 동그라미 나라에 오신 것을 환영합니다. 💕\n\n간단하게 자기소개 부탁드립니다. 😎\n입국하기 위해서는 10명의 동의가 필요하니 천천히 심사를 기다려 주세요. 🥰"
+    
+    msg = member.name+"님, 동그라미 나라에 오신 것을 환영합니다. 💕"
+    
     channel = bot.get_channel(1125625298063462411)
+    
     await channel.send(msg)
+
+
 
 async def Monthly_discord_connect_time():
     role_foreign = bot.get_guild(1036292207491154041).get_role(1041280525094109205)
