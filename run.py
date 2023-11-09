@@ -4,7 +4,11 @@ import time
 import youtube_dl
 from datetime import datetime
 import gspread
+import asyncio
 from oauth2client.service_account import ServiceAccountCredentials
+from discord.ext import commands
+from youtube_search import YoutubeSearch
+
 scope = [
 'https://spreadsheets.google.com/feeds',
 'https://www.googleapis.com/auth/drive',
@@ -17,7 +21,22 @@ doc = gc.open_by_url(spreadsheet_url)
 worksheet = doc.worksheet('Discord_user_data')
 user_data = worksheet.get_all_values()
 
-from discord.ext import commands
+ydl_opts = {
+    'quiet': False,
+    'default_search': 'ytsearch',
+    'format': 'bestaudio/best',
+    'postprocessors': [{
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': 'mp3',
+        'preferredquality': '192',
+    }],
+    'youtube_include_dash_manifest': False,
+}
+FFMPEG_OPTIONS = {
+    'executable': 'C:/Program Files (x86)/ffmpeg/bin/ffmpeg.exe',
+    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+    'options': '-vn'
+}
 
 intents = discord.Intents.all()
 intents.members = True
@@ -31,6 +50,8 @@ immigration_count = 0;
 @bot.event    
 async def on_ready():
     print("라미 봇 ON")
+    global musicChannel
+    musicChannel = bot.get_channel(1171707718688575558)
 
 @bot.command()
 async def check_daily_connect(message):
@@ -83,7 +104,7 @@ async def print_members(message):
 # @bot.command()
 # async def test(message):
 
-play_list = []
+
 
 @bot.command()
 async def calculate_score(message):
@@ -95,62 +116,267 @@ async def calculate_score(message):
             time.sleep(1)
         index += 1
 
-@bot.command()
-async def play_music(message, *vars):
-    print(vars)
-    if len(bot.voice_clients) == 0:
+global musicChannel
+playList = []
+
+play_list = []
+playNumber = 0
+
+# @bot.command()
+# async def play_music(message, *vars):
+#     print(vars)
+#     if len(bot.voice_clients) == 0:
+#         channel = message.author.voice.channel
+#         await channel.connect()
+
+#     voice = bot.voice_clients[0]
+
+#     if len(vars) == 0:
+#         # if len(play_list) <= play_number:
+#         # elif voice.is_playing():
+#         if voice.is_paused():
+#             await voice.resume()
+#         else:
+#             await play_music_in_list(voice)
+#     elif len(vars) == 1 and vars[0][0:23] == "https://www.youtube.com":
+#         play_list.append(vars[0])
+        
+#         if voice.is_playing() == False:
+#             await play_music_in_list(voice)
+
+
+
+# async def play_music_in_list(voice):
+#     global playNumber
+#     messageChannel = bot.get_channel(1166986626568835102)
+    
+#     try:
+#         str = " ".join(vars)
+#         print(str)
+#         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+#             if str[0:23] == "https://www.youtube.com" or str[0:16] == "https://youtu.be":
+#                 print("playmusic")
+#                 info = ydl.extract_info(play_list[0], download = False)
+#                 url = info['formats'][0]['url']
+#             else:
+#                 info = ydl.extract_info(f"ytsearch:{str}", download = False)['entries'][0]
+#                 print("end")
+#                 await messageChannel.send(info)
+
+#         playNumber = playNumber + 1
+#         voice.play(discord.FFmpegPCMAudio(url, **FFMPEG_OPTIONS),after = my_after)
+#     except Exception as e:
+#         print(e)
+
+
+
+# @bot.command()
+# async def play_music(message, *vars):
+#     print(vars)
+    
+
+#     voice = bot.voice_clients[0]
+
+#     if len(vars) == 0:
+#         # if len(play_list) <= play_number:
+#         # elif voice.is_playing():
+#         if voice.is_paused():
+#             await voice.resume()
+#         else:
+#             await play_music_in_list(voice)
+#     elif len(vars) == 1 and vars[0][0:23] == "https://www.youtube.com":
+#         play_list.append(vars[0])
+        
+#         if voice.is_playing() == False:
+#             await play_music_in_list(voice)
+
+        
+async def music_bot_play(message=None):
+    global musicChannel
+    global playNumber
+    global playList
+    
+    if len(bot.voice_clients) == 0 and message != None:
         channel = message.author.voice.channel
         await channel.connect()
 
     voice = bot.voice_clients[0]
 
-    if len(vars) == 0:
-        # if len(play_list) <= play_number:
-        # elif voice.is_playing():
+    if not voice.is_playing():
         if voice.is_paused():
-            await voice.resume()
+            voice.resume()
         else:
-            await play_music_in_list(voice)
-    elif len(vars) == 1 and vars[0][0:23] == "https://www.youtube.com":
-        play_list.append(vars[0])
-        
-        if voice.is_playing() == False:
-            await play_music_in_list(voice)
+            try:
+                if len(playList) == 0:
+                    await musicChannel.send("리스트에 음악이 없습니다. /노래 추가 음악제목 명령어를 이용해 음악을 추가해주세요.")
+                elif playNumber >= len(playList) :
+                    playNumber = 0
+                if playNumber < len(playList):
+                    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                        info = ydl.extract_info(playList[playNumber]["url"], download = False)
+                        url = info['formats'][0]['url']
+                
+                    playNumber = playNumber + 1
+                    voice.play(discord.FFmpegPCMAudio(url, **FFMPEG_OPTIONS),after = my_after)
+            except Exception as e:
+                print(e)
 
-ydl_opts = {
-    'quiet': False,
-    'default_search': 'ytsearch',
-    'format': 'bestaudio/best',
-    'postprocessors': [{
-        'key': 'FFmpegExtractAudio',
-        'preferredcodec': 'mp3',
-        'preferredquality': '192',
-    }],
-    'youtube_include_dash_manifest': False,
-}
-FFMPEG_OPTIONS = {
-    'executable': 'C:/Program Files (x86)/ffmpeg/bin/ffmpeg.exe',
-    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-    'options': '-vn'
-}
-
-async def play_music_in_list(voice):
+def my_after(error):
     global playNumber
-    global messageChannel
-    
+    global playList
+
     try:
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(play_list[0], download = False)
-            url = info['formats'][0]['url']
-        playNumber = playNumber + 1
-        voice.play(discord.FFmpegPCMAudio(url, **FFMPEG_OPTIONS),after = my_after)
+        fut = None
+        if playNumber >= len(playList):
+            playNumber = 0
+
+        fut = asyncio.run_coroutine_threadsafe(music_bot_play(), bot.loop)
+        fut.result()
     except Exception as e:
         print(e)
 
-    
-@bot.command()
-async def stop_music(message):
+async def music_bot_stop():
+    global musicChannel
     await bot.voice_clients[0].disconnect()
+    await musicChannel.send("노래를 멈췄습니다.")
+
+async def music_bot_leave():
+    global musicChannel
+    await bot.voice_clients[0].disconnect()
+    await musicChannel.send("퇴장하겠습니다...")
+
+async def music_bot_reset():
+    bot.voice_clients[0].stop()
+
+    global playNumber
+    playNumber = 0
+    playList.clear()
+
+    global musicChannel
+    await musicChannel.send("리스트를 초기화했습니다. 노래를 추가해주세요.")
+
+async def music_bot_pause():
+    bot.voice_clients[0].pause()
+    global musicChannel
+    await musicChannel.send("노래를 일시정지했습니다.")
+
+async def music_bot_resume():
+    bot.voice_clients[0].resume()
+    global musicChannel
+    await musicChannel.send("노래를 다시 재생했습니다.")
+
+async def music_bot_skip(message):
+    bot.voice_clients[0].stop()
+    await music_bot_play(message)
+
+async def music_bot_delete(message):
+    global playNumber
+    global playList
+
+    del playList[playNumber-1]
+
+    bot.voice_clients[0].stop()
+    await music_bot_play(message)
+
+async def music_bot_print_list():
+    global playList
+    global playNumber
+    
+    text = ""
+    num = 1
+
+    for music in playList:
+        
+        text += str(num) + ". " + music["title"]
+        if playNumber == num:
+            text += "  ★"
+
+        text += "\n"
+
+        num += 1
+
+    embed = discord.Embed(title="노래 리스트", description=text)
+    
+    embedMessage = await musicChannel.send(embed=embed)
+
+
+async def music_bot_add(message,vars):
+    global musicChannel
+    global playList
+
+    try:
+        musicName = " ".join(vars[1:])
+
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            if musicName[0:23] == "https://www.youtube.com" or musicName[0:16] == "https://youtu.be":
+                playList.append(musicName)
+                await musicChannel.send("음악을 추가했습니다.")
+                await music_bot_play(message)
+            else:
+                results = YoutubeSearch(musicName, max_results=10).to_dict()
+
+                text = ""
+                num = 1
+                for music in results:
+                    text += str(num) + ". " + music["title"] + "\n"
+                    num += 1
+
+                embed = discord.Embed(title="원하는 노래의 번호를 입력해주세요", description=text)
+                
+                embedMessage = await musicChannel.send(embed=embed)
+
+                def check(m):
+                    return m.author == message.author and m.channel == message.channel
+
+                try:
+                    msg = await bot.wait_for('message',check=check, timeout = 60)
+                except asyncio.TimeoutError: 
+                    await musicChannel.send("입력 시간을 초과하였습니다. 다시 음악을 추가해주세요.")
+                else:
+                    try: 
+                        selectNumber = int(msg.content) - 1
+                        playList.append({"title" : results[selectNumber]["title"],"url" : "https://www.youtube.com" + results[selectNumber]["url_suffix"] })
+
+                        await musicChannel.send("음악을 추가했습니다.")
+                        await music_bot_play(message)
+                    except:
+                        await musicChannel.send("번호를 잘못 입력하였습니다. 다시 음악을 추가해주세요.")
+
+            
+    except Exception as e:
+        print(e)
+        await musicChannel.send("음악을 추가를 실패하였습니다.")
+
+
+# @bot.command()
+# async def queue(message):
+#     await message.channel.send(f'{playNumber} / {len(playList)}')
+
+
+
+@bot.command()
+async def 노래(message,*vars):
+    print(vars)
+    if vars[0] == "추가":
+        await music_bot_add(message,vars)
+    elif vars[0] == "재생":
+        await music_bot_play(message)
+    elif vars[0] == "멈춤":
+        await music_bot_stop()
+    elif vars[0] == "일시정지":
+        await music_bot_pause()
+    elif vars[0] == "퇴장":
+        await music_bot_leave()
+    elif vars[0] == "초기화":
+        await music_bot_reset()
+    elif vars[0] == "스킵":
+        await music_bot_skip(message)
+    elif vars[0] == "리스트":  
+        await music_bot_print_list()
+    elif vars[0] == "삭제":
+        await music_bot_delete(message)  
+
+
 
 
 
@@ -163,19 +389,10 @@ async def on_message(message):
     else:
         await bot.process_commands(message)
 
-    # message_content = message.content
-    # introduce = message_content.find("자기소개끝")
-
-    # if introduce >= 0:
-    #     await message.delete()
-
 connect_data = []
 
 @bot.event
 async def on_voice_state_update(member, before, after):
-    print(member)
-    print(before)
-    print(after)
     if before.channel == None and after.channel != None:
         user_info = {"id" : member.id, "start_time" : datetime.now()}
         connect_data.append(user_info)
@@ -205,15 +422,9 @@ async def on_voice_state_update(member, before, after):
 
             month_connect_time = float(month_connect_time)+connect_time
             total_connect_time = float(total_connect_time)+connect_time
-            print(float(month_connect_time)+connect_time)
-            print(user_data[sheet_index][1])
-            print(month_connect_time)
-            print(total_connect_time)
+
             user_data[sheet_index][3] = month_connect_time
             user_data[sheet_index][6] = total_connect_time
-
-            print(user_data[sheet_index])
-            print(float(month_connect_time)+connect_time)
 
             worksheet.update_cell(sheet_index+1, 4, month_connect_time)
             worksheet.update_cell(sheet_index+1, 7, total_connect_time)
