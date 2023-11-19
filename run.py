@@ -351,8 +351,13 @@ async def music_bot_add(message,vars):
 # @bot.command()
 # async def queue(message):
 #     await message.channel.send(f'{playNumber} / {len(playList)}')
+connect_data = []
 
+save_data = []
 
+@bot.command()
+async def print_save_data(message,*vars):
+    print(save_data)
 
 @bot.command()
 async def 노래(message,*vars):
@@ -389,12 +394,12 @@ async def on_message(message):
     else:
         await bot.process_commands(message)
 
-connect_data = []
+
 
 @bot.event
 async def on_voice_state_update(member, before, after):
     if before.channel == None and after.channel != None:
-        user_info = {"id" : member.id, "start_time" : datetime.now()}
+        user_info = {"id" : member.id, "start_time" : datetime.now(),"name" : member.nick}
         connect_data.append(user_info)
     elif before.channel != None and after.channel == None:
         index = 0
@@ -419,6 +424,9 @@ async def on_voice_state_update(member, before, after):
 
             now = datetime.now()
             connect_time = (now - connect_data[index]["start_time"]).seconds/60
+
+            tmp = {"start_time" : connect_data[index]["start_time"], "now" : now , "connect_time" : connect_time, "name" : connect_data[index]["name"]}
+            save_data.append(tmp)
 
             month_connect_time = float(month_connect_time)+connect_time
             total_connect_time = float(total_connect_time)+connect_time
